@@ -12,7 +12,8 @@ examples/build/*
 examples/*/Debug/*
 examples/*/Release/*
 examples/*/x64/*
-
+./object_files
+./application
 ## Visual Studio artifacts
 .vs
 ipch
