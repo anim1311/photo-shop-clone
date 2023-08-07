@@ -11,22 +11,24 @@
 #   pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-glfw
 #
 
-CXX = g++
+ßCXX = g++
 #CXX = clang++
 
 EXE = application
-IMGUI_DIR = ../imgui
-SOURCES = main.cpp
+IMGUI_DIR = ./imgui
+SOURCES_DIR = ./src
+SOURCES = main.cpp 
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+
 OBJ_DIR = ./object_files
 OBJS = $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(basename $(notdir $(SOURCES)))))
 UNAME_S := $(shell uname -s)
 LINUX_GL_LIBS = -lGL
 
-CXXFLAGS = -std=c++11 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
+CXXFLAGS = -std=c++11 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends 
 CXXFLAGS += -g -Wall -Wformat
-LIBS =
+LIBS = -O3 -fno-common
 
 
 
@@ -44,8 +46,9 @@ LIBS =
 
 ifeq ($(UNAME_S), Linux) #LINUX
 	ECHO_MESSAGE = "Linux"
-	LIBS += $(LINUX_GL_LIBS) `pkg-config --static --libs glfw3`
+	LINUX_GL_LIBS = -lGL
 
+	LIBS += $(LINUX_GL_LIBS) `pkg-config --static --libs glfw3`
 	CXXFLAGS += `pkg-config --cflags glfw3`
 	CFLAGS = $(CXXFLAGS)
 endif
@@ -73,7 +76,7 @@ endif
 ## BUILD RULES
 ##---------------------------------------------------------------------
 
-$(OBJ_DIR)/%.o:%.cpp
+$(OBJ_DIR)/%.o:$(SOURCES_DIR)/%.cpp
 	@mkdir -p $(OBJ_DIR)
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
@@ -87,7 +90,7 @@ $(OBJ_DIR)/%.o:$(IMGUI_DIR)/backends/%.cpp
 
 
 
-all: $(EXE) 
+all: $(EXE)
 	@echo Build complete for $(ECHO_MESSAGE)
 
 $(EXE): $(OBJS)
