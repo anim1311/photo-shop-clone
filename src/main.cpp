@@ -10,6 +10,14 @@
 #endif
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
 
+#include "somemathstuff.h"
+
+#include "camera.h"
+#include "color.h"
+#include "hittable_list.h"
+#include "material.h"
+#include "sphere.h"
+
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
@@ -64,6 +72,66 @@ int main(int, char**)
     //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
+
+    hittable_list world;
+    auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
+    world.add(make_shared<sphere>(point3(0,-1000,0), 1000, ground_material));
+    
+    for (int a = -11; a < 11; a++) {
+        for (int b = -11; b < 11; b++) {
+            auto choose_mat = random_double();
+            point3 center(a + 0.9*random_double(), 0.2, b + 0.9*random_double());
+
+            if ((center - point3(4, 0.2, 0)).length() > 0.9) {
+                shared_ptr<material> sphere_material;
+
+                if (choose_mat < 0.8) {
+                    // diffuse
+                    auto albedo = color::random() * color::random();
+                    sphere_material = make_shared<lambertian>(albedo);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                } else if (choose_mat < 0.95) {
+                    // metal
+                    auto albedo = color::random(0.5, 1);
+                    auto fuzz = random_double(0, 0.5);
+                    sphere_material = make_shared<metal>(albedo, fuzz);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                } else {
+                    // glass
+                    sphere_material = make_shared<dielectric>(1.5);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                }
+            }
+        }
+    }
+
+
+    auto material1 = make_shared<dielectric>(1.5);
+    world.add(make_shared<sphere>(point3(0, 1, 0), 1.0, material1));
+
+    auto material2 = make_shared<lambertian>(color(0.4, 0.2, 0.1));
+    world.add(make_shared<sphere>(point3(-4, 1, 0), 1.0, material2));
+
+    auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
+    world.add(make_shared<sphere>(point3(4, 1, 0), 1.0, material3));
+
+
+    camera cam;
+
+    cam.aspect_ratio      = 16.0 / 9.0;
+    cam.image_width       = 1200;
+    cam.samples_per_pixel = 10;
+    cam.max_depth         = 20;
+
+    cam.vfov     = 20;
+    cam.lookfrom = point3(13,2,3);
+    cam.lookat   = point3(0,0,0);
+    cam.vup      = vec3(0,1,0);
+
+    cam.defocus_angle = 0.6;
+    cam.focus_dist    = 10.0;
+
+    
 
     // Create window with graphics context
     GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
@@ -120,7 +188,8 @@ int main(int, char**)
         {
             ImGui::Begin("Properties");                          // Create a window called "Hello, world!" and append into it.
 
-            ImGui::Text("There will be some properties here");               // Display some text (you can use a format strings too)
+            float fps = ImGui::GetIO().Framerate;
+            ImGui::Text("The current FPS is %f",fps);              // Display some text (you can use a format strings too)
 
             ImGui::End();
         }
@@ -130,13 +199,14 @@ int main(int, char**)
             // Create a OpenGL texture identifier
             Image image;
             image.width = ImGui::GetWindowWidth() - 20;
-            image.height = ImGui::GetWindowHeight() - 20;
+            image.height = ImGui::GetWindowHeight() - 40;
             image.data = new unsigned char[image.width * image.height * 4];
 
             // Fill image with random pixels
             for (int i = 0; i < image.width * image.height * 4; i++)
                 image.data[i] = rand() % 256;
             
+            //cam.render(world, image.data);
             // Create a OpenGL texture identifier
             GLuint image_texture;
             glGenTextures(1, &image_texture);
