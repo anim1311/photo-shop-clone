@@ -11,10 +11,8 @@
 #   pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-glfw
 #
 
-CXX = g++-13
+ßCXX = g++
 #CXX = clang++
-
-
 
 EXE = application
 IMGUI_DIR = ./imgui
@@ -28,9 +26,9 @@ OBJS = $(addprefix $(OBJ_DIR)/, $(addsuffix .o, $(basename $(notdir $(SOURCES)))
 UNAME_S := $(shell uname -s)
 LINUX_GL_LIBS = -lGL
 
-CXXFLAGS = -std=c++11 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends -I$(SOURCES_DIR)
-CXXFLAGS += -g -Wall -Wformat 
-LIBS = 
+CXXFLAGS = -std=c++11 -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends 
+CXXFLAGS += -g -Wall -Wformat
+LIBS = -O3 -fno-common
 
 
 
@@ -80,7 +78,7 @@ endif
 
 $(OBJ_DIR)/%.o:$(SOURCES_DIR)/%.cpp
 	@mkdir -p $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -c -o $@ $< 
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 $(OBJ_DIR)/%.o:$(IMGUI_DIR)/%.cpp
 	@mkdir -p $(OBJ_DIR)
