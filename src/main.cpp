@@ -10,6 +10,12 @@
 #endif
 #include <GLFW/glfw3.h> // Will drag system OpenGL headers
 
+#include <thread>
+#include <vector>
+#include <cmath>
+
+// Define the number of threads to use
+#define NUM_THREADS 4
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1900) && !defined(IMGUI_DISABLE_WIN32_FUNCTIONS)
 #pragma comment(lib, "legacy_stdio_definitions")
@@ -25,7 +31,6 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
-void EnableDockSpace(bool *p_open);
 
 // Image struct
 struct Image
@@ -34,6 +39,24 @@ struct Image
     int width;
     int height;
 };
+
+ImVec4 interpolateColors(const ImVec4& color1, const ImVec4& color2, double t) {
+    ImVec4 result;
+    result.w = static_cast<float>(1.0f);
+    result.x = static_cast<float>(color1.x + t * (color2.x - color1.x));
+    result.y = static_cast<float>(color1.y + t * (color2.y - color1.y));
+    result.z = static_cast<float>(color1.z + t * (color2.z - color1.z));
+    return result;
+}
+
+ImVec4 color1 = ImVec4(0.0f, 0.0f, 1.0f, 1.00f);
+ImVec4 color2 = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
+
+
+inline void EnableDockSpace(bool *p_open);
+inline void write_data(Image image, int r,int g,int b, int alpha, int i,int j);
+void generate_colors(Image& image, int start_row, int end_row,int radius, ImVec4 circle_color);
+
 
 // Main code
 int main(int, char**)
@@ -66,7 +89,7 @@ int main(int, char**)
 #endif
 
     // Create window with graphics context
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1280, 720, "Image Editor", nullptr, nullptr);
     if (window == nullptr)
         return 1;
     glfwMakeContextCurrent(window);
@@ -91,6 +114,13 @@ int main(int, char**)
 
     // Our state
     bool enable_dockspace = true;
+    int radius = 10;
+    std::thread threads[NUM_THREADS];
+
+    // Circle Color
+    ImVec4 circle_color = ImVec4(1.0f, 0.0f, 0.0f, 1.00f);
+
+    // Background color
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // Main loop
@@ -120,7 +150,17 @@ int main(int, char**)
         {
             ImGui::Begin("Properties");                          // Create a window called "Hello, world!" and append into it.
 
-            ImGui::Text("There will be some properties here");               // Display some text (you can use a format strings too)
+            float fps = ImGui::GetIO().Framerate;
+
+            ImGui::Text("FPS: %f",fps);               // Display some text (you can use a format strings too)
+
+            ImGui::SliderInt("Radius", &radius, 0, 500);            // Edit 1 float using a slider from 0.0f to 1.0f
+
+            ImGui::ColorEdit3("Circle Color", (float*)&circle_color); // Edit 3 floats representing a color
+
+            ImGui::ColorEdit3("Top Background Color", (float*)&color1); // Edit 3 floats representing a color")
+
+            ImGui::ColorEdit3("Bottom Background Color", (float*)&color2); // Edit 3 floats representing a color")
 
             ImGui::End();
         }
@@ -130,12 +170,23 @@ int main(int, char**)
             // Create a OpenGL texture identifier
             Image image;
             image.width = ImGui::GetWindowWidth() - 20;
-            image.height = ImGui::GetWindowHeight() - 20;
+            image.height = ImGui::GetWindowHeight() - 40;
             image.data = new unsigned char[image.width * image.height * 4];
 
-            // Fill image with random pixels
-            for (int i = 0; i < image.width * image.height * 4; i++)
-                image.data[i] = rand() % 256;
+            // Start the color generation threads
+            
+            int rows_per_thread = image.height / NUM_THREADS;
+            for (int i = 0; i < NUM_THREADS; ++i) {
+                int start_row = i * rows_per_thread;
+                int end_row = (i == NUM_THREADS - 1) ? image.height : (i + 1) * rows_per_thread;
+                threads[i] = std::thread(generate_colors, std::ref(image), start_row, end_row, radius, circle_color);
+            }
+
+            // Wait for all threads to finish
+            for (auto& thread : threads) {
+                thread.join();
+            }
+
             
             // Create a OpenGL texture identifier
             GLuint image_texture;
@@ -148,10 +199,6 @@ int main(int, char**)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // This is required on WebGL for non power-of-two textures
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // Same
 
-                // Upload pixels into texture
-#if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
-            glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-#endif
 
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data);
 
@@ -262,4 +309,41 @@ inline void EnableDockSpace(bool* p_open)
     }
 
     ImGui::End();
+}
+
+
+inline void write_data(Image image, int r,int g,int b, int alpha, int i,int j){
+
+
+    image.data[(j * image.width + i) * 4 + 0] = r;
+    image.data[(j * image.width + i) * 4 + 1] = g;
+    image.data[(j * image.width + i) * 4 + 2] = b;
+    image.data[(j * image.width + i) * 4 + 3] = alpha;
+    
+}
+
+
+
+void generate_colors(Image& image, int start_row, int end_row,int radius, ImVec4 circle_color) {
+    
+    
+
+    int r = static_cast<int>(circle_color.x * 255.0f);
+    int g = static_cast<int>(circle_color.y * 255.0f);
+    int b = static_cast<int>(circle_color.z * 255.0f);
+    
+    for (int j = start_row; j < end_row; ++j) {
+        for (int i = 0; i < image.width; ++i) {
+
+            if((i - image.width/2 )*(i - image.width/2) + (j - image.height/2)*(j - image.height/2) <= radius * radius)
+                write_data(image, r, g, b, 255, i, j);
+
+            else{
+                double t = static_cast<double>(j) / (image.height - 1);  // Adjusted for 0-based indexing
+                ImVec4 interpolatedColor = interpolateColors(color1, color2, t);
+
+                write_data(image, static_cast<int>(interpolatedColor.x*255.0f), static_cast<int>(interpolatedColor.y*255.0f), static_cast<int>(interpolatedColor.z*255.0f), 255, i, j);
+            }
+        }
+    }
 }
