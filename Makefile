@@ -11,7 +11,7 @@
 #   pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-glfw
 #
 
-ßCXX = g++
+CXX = g++
 #CXX = clang++
 
 EXE = application
