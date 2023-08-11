@@ -49,7 +49,7 @@ ImVec4 interpolateColors(const ImVec4& color1, const ImVec4& color2, double t) {
     return result;
 }
 
-ImVec4 color1 = ImVec4(0.0f, 0.0f, 1.0f, 1.00f);
+ImVec4 color1 = ImVec4(0.5f, 0.7f, 1.f,1.0f);
 ImVec4 color2 = ImVec4(1.0f, 1.0f, 1.0f, 1.00f);
 
 
