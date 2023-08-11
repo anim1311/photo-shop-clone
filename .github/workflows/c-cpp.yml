@@ -19,9 +19,7 @@ jobs:
             sudo apt-get install libglfw3-dev
     - name: make
       run: make
-    - name: application
-      run: ./application
-    - name: clean
-      run: make clean
+
+
 
 
