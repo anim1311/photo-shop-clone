@@ -11,13 +11,13 @@
 #   pacman -S --noconfirm --needed mingw-w64-x86_64-toolchain mingw-w64-x86_64-glfw
 #
 
-CXX = g++
-#CXX = clang++
+#CXX = g++
+CXX = clang++
 
 EXE = application
 IMGUI_DIR = ./imgui
 SOURCES_DIR = ./src
-SOURCES = main.cpp 
+SOURCES = main.cpp App.cpp Camera.cpp
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
 
@@ -50,6 +50,7 @@ ifeq ($(UNAME_S), Linux) #LINUX
 
 	LIBS += $(LINUX_GL_LIBS) `pkg-config --static --libs glfw3`
 	CXXFLAGS += `pkg-config --cflags glfw3`
+	CXXFLAGS += `pkg-config --cflags glm`
 	CFLAGS = $(CXXFLAGS)
 endif
 
@@ -60,6 +61,7 @@ ifeq ($(UNAME_S), Darwin) #APPLE
 	#LIBS += -lglfw3
 	LIBS += -lglfw
 
+
 	CXXFLAGS += -I/usr/local/include -I/opt/local/include -I/opt/homebrew/include
 	CFLAGS = $(CXXFLAGS)
 endif
@@ -69,6 +71,7 @@ ifeq ($(OS), Windows_NT)
 	LIBS += -lglfw3 -lgdi32 -lopengl32 -limm32
 
 	CXXFLAGS += `pkg-config --cflags glfw3`
+	CXXFLAGS += `pkg-config --cflags glm`
 	CFLAGS = $(CXXFLAGS)
 endif
 

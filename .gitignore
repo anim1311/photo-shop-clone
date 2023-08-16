@@ -7,6 +7,7 @@ object_files
 ## Application
 application
 
+test.cpp
 
 ## General build artifacts
 *.o
